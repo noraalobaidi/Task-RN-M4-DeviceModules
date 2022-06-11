@@ -27,13 +27,7 @@ export default function App() {
     if (!result.cancelled) {
       setImage(result.uri);
     }
-    // expo image picker to form data
-    const formData = new FormData();
-    formData.append('image', {
-      name: 'image.jpg',
-      type: 'application/' + result.type,
-      uri: image.replace('///', '//'),
-    });
+
     try {
       const uploadResult = await FileSystem.uploadAsync(
         'http://192.168.100.24:8000/ocr',
