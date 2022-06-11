@@ -1,9 +1,53 @@
 import * as React from 'react';
 import { Text, View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { FileSystemUploadType } from 'expo-file-system';
+import * as Network from 'expo-network';
 
 export default function App() {
+  const [image, setImage] = React.useState(
+    'https://cdn.sick.com/media/ZOOM/2/82/782/IM0077782.png'
+  );
+
+  const [text, setText] = React.useState('Pick an image');
+
   const handleOcr = async () => {
-    console.log('handleOcr');
+    if ((await Network.getNetworkStateAsync()) === 'NONE') {
+      return setText('No internet connection');
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+      base64: true,
+    });
+
+    if (!result.cancelled) {
+      setImage(result.uri);
+    }
+    // expo image picker to form data
+    const formData = new FormData();
+    formData.append('image', {
+      name: 'image.jpg',
+      type: 'application/' + result.type,
+      uri: image.replace('///', '//'),
+    });
+    try {
+      const uploadResult = await FileSystem.uploadAsync(
+        'http://192.168.100.24:8000/ocr',
+        result.uri,
+        {
+          httpMethod: 'POST',
+          uploadType: FileSystemUploadType.MULTIPART,
+          fieldName: 'image',
+        }
+      );
+      setText(uploadResult.body);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -12,12 +56,12 @@ export default function App() {
         <Image
           style={styles.card_image}
           source={{
-            uri: 'https://cdn.sick.com/media/ZOOM/2/82/782/IM0077782.png',
+            uri: image,
           }}
         />
         <View style={styles.text_container}>
           <TouchableOpacity onPress={handleOcr}>
-            <Text style={styles.card_title}>Pick an image</Text>
+            <Text style={styles.card_title}>{text}</Text>
           </TouchableOpacity>
         </View>
       </View>
